@@ -8,8 +8,7 @@ from torch.utils.data import DataLoader, RandomSampler
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping
 
-from text_clf.text_classification import FastTextLSTMModel, Vocabulary
-from text_clf.text_classification import download_dataset
+from text_classification import FastTextLSTMModel, Vocabulary, download_dataset
 
 
 class FastTextDataset(Dataset):
@@ -56,9 +55,10 @@ def prepare_dataset(df_train, df_val, df_test):
 
 
 def main():
-    download_dataset()
-    (train_texts, train_labels), (val_texts, val_labels), (test_texts, test_labels) = prepare_dataset()
-
+    df_train, df_val, df_test = download_dataset()
+    (train_texts, train_labels), (val_texts, val_labels), (test_texts, test_labels) = prepare_dataset(df_train,
+                                                                                                      df_val,
+                                                                                                      df_test)
     vocabulary = Vocabulary()
     vocabulary.build(train_texts)
 

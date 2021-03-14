@@ -1,5 +1,10 @@
 from collections import Counter
 import torch
+import os
+import re
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
 import torch.nn as nn
 from pytorch_lightning import LightningModule
 from pytorch_lightning.metrics import Accuracy
@@ -38,6 +43,38 @@ class Vocabulary:
 
     def get_word(self, index):
         return self.index2word[index]
+
+
+def download_dataset():
+    # download
+    os.system("wget https://www.dropbox.com/s/fnpq3z4bcnoktiv/positive.csv")
+    os.system("wget https://www.dropbox.com/s/r6u59ljhhjdg6j0/negative.csv")
+
+    n = ['id', 'date', 'name', 'text', 'typr', 'rep', 'rtw', 'faw', 'stcount', 'foll', 'frien', 'listcount']
+    data_positive = pd.read_csv('positive.csv', sep=';', error_bad_lines=False, names=n, usecols=['text'])
+    data_negative = pd.read_csv('negative.csv', sep=';', error_bad_lines=False, names=n, usecols=['text'])
+
+    sample_size = min(data_positive.shape[0], data_negative.shape[0])
+    raw_data = np.concatenate((data_positive['text'].values[:sample_size], data_negative['text'].values[:sample_size]),
+                              axis=0)
+    def preprocess_text(text):
+        text = text.lower().replace("ё", "е")
+        text = re.sub('((www\.[^\s]+)|(https?://[^\s]+))', 'URL', text)
+        text = re.sub('@[^\s]+', 'USER', text)
+        text = re.sub('[^a-zA-Zа-яА-Я1-9]+', ' ', text)
+        text = re.sub(' +', ' ', text)
+        return text.strip()
+
+    df_train = pd.DataFrame(columns=['text', 'label'])
+    df_test = pd.DataFrame(columns=['text', 'label'])
+
+    data = [preprocess_text(t) for t in raw_data]
+    labels = [1] * sample_size + [0] * sample_size
+    df_train['text'], df_test['text'], df_train['label'], df_test['label'] = train_test_split(data, labels,
+                                                                                              test_size=0.2,
+                                                                                              random_state=1)
+    df_train, df_val = train_test_split(df_train, test_size=0.2, random_state=1)
+    return df_train, df_val, df_test
 
 
 class SimpleModel(LightningModule):
