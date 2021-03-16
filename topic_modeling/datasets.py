@@ -4,7 +4,6 @@ import pickle
 import time
 from nltk.tokenize import sent_tokenize
 from nltk.tokenize import PunktSentenceTokenizer
-from matplotlib import pyplot as plt
 import razdel
 import json
 from nltk.util import ngrams
@@ -16,7 +15,7 @@ import tqdm
 tqdm.tqdm.pandas()
 
 pd.options.display.max_colwidth = 1000
-from headline_generation import baseline_headline_generation, calc_scores, add_oracle_summary_to_records
+from headline_generation import add_oracle_summary_to_records
 
 
 class LentaDataset(object):
@@ -211,12 +210,12 @@ if __name__ == '__main__':
          transformed_path='data/lenta_transformed_tm.txt',
          n_rows=None
      )
-     lenta_data.save_preprocessed_data_for_artm()
-     lenta_data.split(
+    lenta_data.save_preprocessed_data_for_artm()
+    lenta_data.split(
          input_path_mask='data/lenta_transformed_tm.txt',
          train_path='data/lenta_transformed_tm_train.txt',
          valid_path='data/lenta_transformed_tm_valid.txt'
-     )
+    )
 
     # PREPARE RIA DATA FOR HEADLINE GENERATION
     ria_data = RiaDataset(
