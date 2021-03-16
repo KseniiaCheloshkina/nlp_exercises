@@ -47,8 +47,9 @@ class Vocabulary:
 
 def download_dataset():
     # download
-    os.system("wget https://www.dropbox.com/s/fnpq3z4bcnoktiv/positive.csv")
-    os.system("wget https://www.dropbox.com/s/r6u59ljhhjdg6j0/negative.csv")
+    if "negative.csv" not in os.listdir() or "positive.csv" not in os.listdir():
+        os.system("wget https://www.dropbox.com/s/fnpq3z4bcnoktiv/positive.csv")
+        os.system("wget https://www.dropbox.com/s/r6u59ljhhjdg6j0/negative.csv")
 
     n = ['id', 'date', 'name', 'text', 'typr', 'rep', 'rtw', 'faw', 'stcount', 'foll', 'frien', 'listcount']
     data_positive = pd.read_csv('positive.csv', sep=';', error_bad_lines=False, names=n, usecols=['text'])
@@ -57,6 +58,7 @@ def download_dataset():
     sample_size = min(data_positive.shape[0], data_negative.shape[0])
     raw_data = np.concatenate((data_positive['text'].values[:sample_size], data_negative['text'].values[:sample_size]),
                               axis=0)
+
     def preprocess_text(text):
         text = text.lower().replace("ё", "е")
         text = re.sub('((www\.[^\s]+)|(https?://[^\s]+))', 'URL', text)
@@ -101,7 +103,11 @@ class SimpleModel(LightningModule):
     def validation_step(self, batch, _):
         inputs, labels = batch
         val_loss, logits = self(inputs, labels)
-        self.valid_accuracy.update(logits, labels)
+        if torch.max(labels) == 1:
+            pred = torch.sigmoid(logits)
+        else:
+            pred = torch.softmax(logits, 1)
+        self.valid_accuracy.update(pred, labels.long())
         self.log("val_loss", val_loss, prog_bar=True)
         self.log("val_acc", self.valid_accuracy)
 
@@ -111,7 +117,11 @@ class SimpleModel(LightningModule):
     def test_step(self, batch, _):
         inputs, labels = batch
         test_loss, logits = self(inputs, labels)
-        self.test_accuracy.update(logits, labels)
+        if torch.max(labels) == 1:
+            pred = torch.sigmoid(logits)
+        else:
+            pred = torch.softmax(logits, 1)
+        self.test_accuracy.update(pred, labels.long())
         self.log("test_loss", test_loss, prog_bar=True)
         self.log("test_acc", self.test_accuracy)
 
@@ -191,7 +201,7 @@ class FastTextLSTMModel(LightningModule):
         final_hidden_state = final_hidden_state.reshape(batch_size, -1)
         text_hidden = self.dropout_layer(final_hidden_state)
         logits = self.out_layer.forward(text_hidden)
-        loss = self.loss(logits, labels)
+        loss = self.loss(logits, labels.type_as(logits))
         return loss, logits
 
     def configure_optimizers(self):
@@ -206,7 +216,11 @@ class FastTextLSTMModel(LightningModule):
     def validation_step(self, batch, _):
         inputs, labels = batch
         val_loss, logits = self(inputs, labels)
-        self.valid_accuracy.update(logits, labels)
+        if torch.max(labels) == 1:
+            pred = torch.sigmoid(logits)
+        else:
+            pred = torch.softmax(logits, 1)
+        self.valid_accuracy.update(pred, labels.long())
         self.log("val_loss", val_loss, prog_bar=True)
         self.log("val_acc", self.valid_accuracy)
 
@@ -216,7 +230,11 @@ class FastTextLSTMModel(LightningModule):
     def test_step(self, batch, _):
         inputs, labels = batch
         test_loss, logits = self(inputs, labels)
-        self.test_accuracy.update(logits, labels)
+        if torch.max(labels) == 1:
+            pred = torch.sigmoid(logits)
+        else:
+            pred = torch.softmax(logits, 1)
+        self.test_accuracy.update(pred, labels.long())
         self.log("test_loss", test_loss, prog_bar=True)
         self.log("test_acc", self.test_accuracy)
 

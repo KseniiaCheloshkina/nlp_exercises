@@ -38,6 +38,13 @@ def prepare_dataset(df_train, df_val, df_test):
 
 
 def main():
+    """
+    Results in:
+    Accuracy on train: 0.761
+    Accuracy on val: 0.738
+    Accuracy on test: 0.738
+    :return:
+    """
     df_train, df_val, df_test = download_dataset()
     (train_texts, train_labels), (val_texts, val_labels), (test_texts, test_labels) = prepare_dataset(
         df_train, df_val, df_test)
@@ -69,8 +76,17 @@ def main():
         gpus=1,
         checkpoint_callback=False,
         accumulate_grad_batches=1,
-        max_epochs=10,
+        max_epochs=20,
         progress_bar_refresh_rate=10,
         callbacks=[early_stop_callback])
     trainer.fit(cnn_model, train_loader, val_loader)
+    print("Testing on TRAIN:")
+    trainer.test(cnn_model, train_loader)
+    print("Testing on VAL:")
+    trainer.test(cnn_model, val_loader)
+    print("Testing on TEST:")
     trainer.test(cnn_model, test_loader)
+
+
+if __name__ == "__main__":
+    main()

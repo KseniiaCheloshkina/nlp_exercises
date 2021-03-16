@@ -55,6 +55,13 @@ def prepare_dataset(df_train, df_val, df_test):
 
 
 def main():
+    """
+    Results in:
+    Accuracy on train: 0.795
+    Accuracy on val: 0.783
+    Accuracy on test: 0.782
+    :return:
+    """
     df_train, df_val, df_test = download_dataset()
     (train_texts, train_labels), (val_texts, val_labels), (test_texts, test_labels) = prepare_dataset(df_train,
                                                                                                       df_val,
@@ -62,7 +69,8 @@ def main():
     vocabulary = Vocabulary()
     vocabulary.build(train_texts)
 
-    os.system("wget https://www.dropbox.com/s/t7fthf8axi30hct/ft_ru_tweets_model_v2.bin")
+    if "ft_ru_tweets_model_v2.bin" not in os.listdir():
+        os.system("wget https://www.dropbox.com/s/t7fthf8axi30hct/ft_ru_tweets_model_v2.bin")
     ft_model = fasttext.load_model('ft_ru_tweets_model_v2.bin')
     BATCH_SIZE = 128
 
@@ -88,8 +96,17 @@ def main():
         gpus=1,
         checkpoint_callback=False,
         accumulate_grad_batches=1,
-        max_epochs=10,
+        max_epochs=20,
         progress_bar_refresh_rate=10,
         callbacks=[early_stop_callback])
     trainer.fit(ft_lstm_model, ft_train_loader, ft_val_loader)
+    print("Testing on TRAIN:")
+    trainer.test(ft_lstm_model, ft_train_loader)
+    print("Testing on VAL:")
+    trainer.test(ft_lstm_model, ft_val_loader)
+    print("Testing on TEST:")
     trainer.test(ft_lstm_model, ft_test_loader)
+
+
+if __name__ == "__main__":
+    main()
