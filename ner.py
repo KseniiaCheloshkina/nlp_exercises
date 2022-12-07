@@ -50,7 +50,7 @@ class CharCNNWordLstmModel(nn.Module):
         # output (batch_size, max_tokens_in_text, lstm_embedding_dim)
         output = self.dropout(output)
         output = self.out_layer.forward(output)
-        # output (batch_size, max_tokens_in_text, lstm_embedding_dim)
+        # output (batch_size, max_tokens_in_text, classes_count)
         return output
 
 def get_spans(labels, tokens):
