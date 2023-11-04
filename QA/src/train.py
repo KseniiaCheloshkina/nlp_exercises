@@ -101,9 +101,14 @@ def run_training(cfg: DictConfig):
             mode=cfg.training_args.early_stopper.early_stop_mode,
         )
         callbacks.append(early_stop_callback)
-        
+
     # setup dataset
-    train_loader, test_loader = prepare_dataloaders(tokenizer=model.tokenizer, max_length=model.max_length, dataset_type=cfg.dataset_type, batch_size=cfg.training_args.batch_size)
+    train_loader, test_loader = prepare_dataloaders(
+        tokenizer=model.tokenizer,
+        max_length=model.max_length,
+        dataset_type=cfg.dataset_type,
+        batch_size=cfg.training_args.batch_size,
+    )
 
     trainer = pl.Trainer(
         strategy=strategy,
