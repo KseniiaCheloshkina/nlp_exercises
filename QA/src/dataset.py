@@ -1,6 +1,6 @@
 from datasets import load_dataset
 import torch
-from torch.utils.data import Dataset, Dataloader
+from torch.utils.data import Dataset, DataLoader
 from typing import Tuple, Union
 from transformers import AutoTokenizer
 
@@ -11,7 +11,7 @@ class InstructionDataset(Dataset):
         tokenizer: Union[AutoTokenizer, None] = None,
         max_length: Union[int, None] = None,
     ) -> None:
-        self.dataset = load_dataset()
+        self.dataset = self.load_dataset()
         self.max_length = max_length
         self.tokenizer = tokenizer
         self.instruction = """

@@ -13,18 +13,19 @@ lora_config:
   lora_task_type: "CAUSAL_LM"
 training_args:
   max_memory: "15000MB"
-  batch_size: 2
-  learning_rate: 1e-5
-  log_every_steps: 50
+  batch_size: 1
+  learning_rate: 2e-4
+  log_every_steps: 5
   seed: 42
   max_length: 2048
+  precision: "16-mixed" # fp16 precision
   matmul_precision: "high" # "high", "highest", "medium"
   device: "cuda"
   device_num: "auto" # "auto" or number of gpu
   log_path: "model"
   save_path: "model_vals"
   epochs: 5
-  gradient_accumulation_steps: 16
+  gradient_accumulation_steps: 4
   saving_checkpoint_monitor: "val/loss"
   saving_checkpoint_mode: "min"
   early_stopper:

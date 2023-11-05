@@ -20,7 +20,6 @@ def run_training(cfg: DictConfig):
 
     # initialize model
     pl.seed_everything(cfg.training_args.seed)
-    rank = int(os.environ.get("RANK") or 0)
     model = InstructionModel(
         model_name=cfg.model_name,
         load_in_4_bit=cfg.bnb_config.load_in_4_bit,
@@ -35,10 +34,11 @@ def run_training(cfg: DictConfig):
         lora_bias=cfg.lora_config.lora_bias,
         lora_task_type=cfg.lora_config.lora_task_type,
         learning_rate=cfg.training_args.learning_rate,
+        log_every_steps=cfg.training_args.log_every_steps
     )
 
     # setup hardware
-    torch.set_float32_matmul_precision(cfg.training_args.matmul_precision)
+    # torch.set_float32_matmul_precision(cfg.training_args.matmul_precision)
     devices = torch.cuda.device_count()
     print(f"{devices} GPUs are available")
     if cfg.training_args.device_num != "auto":
@@ -55,8 +55,10 @@ def run_training(cfg: DictConfig):
             model.learning_rate = model.learning_rate * np.sqrt(devices)
             strategy = pl.strategies.DDPStrategy(gradient_as_bucket_view=True)
             print(f"Using {strategy} strategy")
+            use_distributed_sampler = True # same as replace_sampler_ddp = True. Trainer adds DistributedSampler on top of dataloader
         else:
             strategy = "auto"
+            use_distributed_sampler = False
     else:
         accelerator = "cpu"
         devices = 0
@@ -117,12 +119,13 @@ def run_training(cfg: DictConfig):
         num_nodes=1,
         logger=logger,
         accumulate_grad_batches=cfg.training_args.gradient_accumulation_steps,
-        enable_checkpointing=False,  # checkpointing still works with _save_model(); 'False' means lightning will not save automatically
+        enable_checkpointing=True,  # False - checkpointing still works with _save_model(); 'False' means lightning will not save automatically
         callbacks=callbacks,
         gradient_clip_val=1.0,
         gradient_clip_algorithm="norm",
         max_epochs=cfg.training_args.epochs,
-        use_distributed_sampler=True,  # same as replace_sampler_ddp = True. Trainer adds DistributedSampler on top of dataloader
+        precision=cfg.training_args.precision,
+        use_distributed_sampler=use_distributed_sampler,  
         # plugins=[SLURMEnvironment(auto_requeue=False)]
     )
     trainer.fit(model, train_loader, val_dataloaders=test_loader)

@@ -25,12 +25,14 @@ class InstructionModel(pl.LightningModule):
         lora_bias: str = "none",
         lora_task_type: str = "CAUSAL_LM",
         learning_rate: float = 1e-5,
+        log_every_steps: int = 50
     ):
         super(InstructionModel, self).__init__()
         self.save_hyperparameters()
-        self.train_loss = torchmetrics.MeanMetric(dist_sync_on_compute=True)
-        self.val_loss = torchmetrics.MeanMetric(dist_sync_on_compute=True)
+        self.train_loss = torchmetrics.MeanMetric()
+        self.val_loss = torchmetrics.MeanMetric()
         self.learning_rate = learning_rate
+        self.log_every_steps = log_every_steps
 
         # BNB config to load model with lower precision
         bnb_config = BitsAndBytesConfig(
@@ -65,6 +67,10 @@ class InstructionModel(pl.LightningModule):
             self.max_length = [
                 max_length for max_length in pot_max_lengths if max_length is not None
             ][0]
+        else:
+            self.max_length = max_length
+        print(self.max_length)
+
 
         # Get linear module names to add LoRa adapters for them
         if lora_target_modules is None:
@@ -78,6 +84,7 @@ class InstructionModel(pl.LightningModule):
             task_type=lora_task_type,
         )
         self.model = self.convert_model_to_peft(model, peft_config)
+        self.model.config.use_cache = False # do not use cached keys/values as we perform fine-tuning
 
     @staticmethod
     def convert_model_to_peft(model, peft_config):
@@ -151,10 +158,6 @@ class InstructionModel(pl.LightningModule):
         if batch_idx % self.log_every_steps == 0:
             rank = self.global_rank
             self.log(f"train/loss_worker_{rank}", loss.item())
-
-            last_lr = self.trainer.lr_scheduler_configs[0].scheduler.get_last_lr()[0]
-            self.log("lr", last_lr)
-
         return loss
 
     @torch.no_grad()
@@ -188,8 +191,10 @@ class InstructionModel(pl.LightningModule):
         temp: float = 0.2,
         top_p: float = 0.95,
         max_length_sample: int = 512,
-        max_length: int = self.max_length,
+        max_length: int = None,
     ):
+        if max_length is None:
+            max_length = self.max_length
         input_ids = self.tokenizer(
             context,
             truncation=True,
