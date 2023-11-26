@@ -24,6 +24,7 @@ class InstructionDataset(Dataset):
         dataset = dataset["train"]  # this dataset has only train subset
         # Shuffle dataset
         dataset = dataset.shuffle(seed=42)
+        dataset = dataset.filter(lambda x: (x['answer'] is not None) & (x['answer'] != ''))
         return dataset
 
     def __len__(self):
